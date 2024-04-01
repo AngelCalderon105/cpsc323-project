@@ -8,8 +8,6 @@
 #include <algorithm>
 
 using namespace std;
-
-// Token categories
 enum class TokenType {
     Keyword,
     Identifier,
@@ -19,7 +17,6 @@ enum class TokenType {
     Unknown
 };
 
-// Mapping from TokenType to a human-readable string for printing
 map<TokenType, string> tokenTypeNames = {
     {TokenType::Keyword, "Keywords"},
     {TokenType::Identifier, "Identifiers"},
@@ -29,56 +26,98 @@ map<TokenType, string> tokenTypeNames = {
     {TokenType::Unknown, "Unknown"}
 };
 
-// Separator, keyword, and operator configurations
 const string whitespace = " \t\n";
-const string delimiters = ",;()";
-const vector<string> keyWords = { "def", "return", "print" }; 
-const string operators = "+-*/%=";
+const string delimiters = ",;(){}\"";
+const vector<string> keyWords = { "def", "return", "print", "int", "cout", "endl","std","using", "#include","iostream"};
+const vector<string> operators = { "+", "-", "*", "/", "%", "=", "<", ">",
+                                   "+=", "-=", "*=", "/=", "%=", "==", "!=", "<=", ">=",
+                                   "&&", "||", "++", "--", "<<", ">>" };
 
-// Check if a string is a keyword
 bool isKeyword(const string& word) {
     return find(keyWords.begin(), keyWords.end(), word) != keyWords.end();
 }
 
-// Check if a character is a delimiter
 bool isDelimiter(char ch) {
     return delimiters.find(ch) != string::npos;
 }
 
-// Check if a character is an operator
-bool isOperator(char ch) {
-    return operators.find(ch) != string::npos;
+bool isOperator(const string& op) {
+    return find(operators.begin(), operators.end(), op) != operators.end();
 }
 
-// Identify the token type
 TokenType identifyTokenType(const string& token) {
     if (isKeyword(token)) return TokenType::Keyword;
-    if (token.length() == 1 && isOperator(token[0])) return TokenType::Operator;
-    if (token.length() == 1 && isDelimiter(token[0])) return TokenType::Delimiter;
-    if (isdigit(token[0])) return TokenType::Literal;
-    return TokenType::Identifier; // Everything else that is not a single char operator/delimiter or digit is an identifier
+    if (isOperator(token)) return TokenType::Operator;
+    if (token.length() == 1 && isDelimiter(token[0]) && token[0] != '\"') return TokenType::Delimiter;
+    if (isdigit(token[0]) || (token.length() > 1 && token[0] == '\"' && token[token.length() - 1] == '\"')) return TokenType::Literal;
+    return TokenType::Identifier;
 }
 
 // Tokenize input string
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
     string token;
-    for (char ch : input) {
-        if (whitespace.find(ch) != string::npos) {
-            if (!token.empty()) {
-                tokens.push_back(token);
+    bool inStringLiteral = false; // Flag to indicate we're inside a string literal
+
+    for (size_t i = 0; i < input.length(); ++i) {
+        char ch = input[i];
+
+        if (inStringLiteral) {
+            token += ch; // Add character to token
+            // Check for end of string literal, considering escape character to allow " inside literals
+            if (ch == '"' && (i == 0 || input[i - 1] != '\\')) {
+                inStringLiteral = false;
+                tokens.push_back(token); // Add the complete string literal as a token
                 token.clear();
             }
-        }
-        else if (isDelimiter(ch) || isOperator(ch)) {
-            if (!token.empty()) {
-                tokens.push_back(token);
-                token.clear();
-            }
-            tokens.push_back(string(1, ch));
         }
         else {
-            token += ch;
+            if (whitespace.find(ch) != string::npos) {
+                if (!token.empty()) {
+                    tokens.push_back(token);
+                    token.clear();
+                }
+            }
+            else if (isDelimiter(ch) && ch != '"') { // Check for delimiters that are not double quotes
+                if (!token.empty()) {
+                    tokens.push_back(token);
+                    token.clear();
+                }
+                tokens.push_back(string(1, ch));
+            }
+            else if (ch == '"') { // Start of string literal
+                if (!token.empty()) {
+                    tokens.push_back(token); // Add token before the string literal starts
+                    token.clear();
+                }
+                token += ch;
+                inStringLiteral = true; // Indicate that we're now inside a string literal
+            }
+            else {
+                string potentialOperator(1, ch);
+                if (i + 1 < input.length()) {
+                    potentialOperator += input[i + 1];
+                    if (isOperator(potentialOperator)) {
+                        if (!token.empty()) {
+                            tokens.push_back(token);
+                            token.clear();
+                        }
+                        tokens.push_back(potentialOperator);
+                        ++i;
+                        continue;
+                    }
+                }
+                if (isOperator(string(1, ch))) {
+                    if (!token.empty()) {
+                        tokens.push_back(token);
+                        token.clear();
+                    }
+                    tokens.push_back(string(1, ch));
+                }
+                else {
+                    token += ch;
+                }
+            }
         }
     }
     if (!token.empty()) tokens.push_back(token);
@@ -87,18 +126,45 @@ vector<string> tokenize(const string& input) {
 
 // Remove comments and excessive whitespace from a line
 string cleanLine(const string& line) {
-    stringstream result;
-    bool inComment = false;
-    for (char ch : line) {
-        if (ch == '#') inComment = true;
-        if (!inComment) result << ch;
+    size_t commentPos = line.find("//");
+    if (commentPos != string::npos) {
+        // If there's a comment, only take the substring before it
+        return line.substr(0, commentPos);
     }
-    return result.str();
+    return line; // Return the line directly if there's no comment
 }
 
+void printCleanedFile(const string& filename) {
+    ifstream inFile(filename);
+    string line;
+
+    if (!inFile.is_open()) {
+        cout << "Unable to open file to print cleaned content." << endl;
+        return;
+    }
+
+    cout << "Cleaned File Content:" << endl;
+    while (getline(inFile, line)) {
+        string cleaned = cleanLine(line); // Remove comments first
+
+        // Now remove all whitespace from the cleaned line
+        cleaned.erase(remove_if(cleaned.begin(), cleaned.end(), ::isspace), cleaned.end());
+
+        // Print the cleaned line only if it's not empty
+        if (!cleaned.empty()) {
+            cout << cleaned << endl;
+        }
+    }
+
+   
+    inFile.close();
+}
+
+
+
 int main() {
-    ifstream inFile("input.txt");
-    ofstream outFile("cleaned_code.txt");
+    printCleanedFile("file.txt");
+    ifstream inFile("file.txt");
     map<TokenType, set<string>> tokenMap; // Use set to avoid duplicates
 
     string line;
@@ -119,7 +185,6 @@ int main() {
     }
 
     inFile.close();
-    outFile.close();
 
     // Print token table, properly categorized and without duplicates
     cout << "Category\t\tTokens\n";
