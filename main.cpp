@@ -31,8 +31,8 @@ map<TokenType, string> tokenTypeNames = {
 
 // Separator, keyword, and operator configurations
 const string whitespace = " \t\n";
-const string delimiters = ",;()";
-const vector<string> keyWords = { "def", "return", "print" }; 
+const string delimiters = ",;(){}";
+const vector<string> keyWords = { "def", "return", "print", "int"};
 const string operators = "+-*/%=";
 
 // Check if a string is a keyword
@@ -97,7 +97,8 @@ string cleanLine(const string& line) {
 }
 
 int main() {
-    ifstream inFile("input.txt");
+    ifstream inFile("file.txt");
+    ifstream cleanFile("file.txt");
     ofstream outFile("cleaned_code.txt");
     map<TokenType, set<string>> tokenMap; // Use set to avoid duplicates
 
@@ -105,6 +106,15 @@ int main() {
     if (!inFile.is_open()) {
         cout << "Unable to open input file." << endl;
         return 1;
+    }
+
+    while (getline(cleanFile, line)) {
+        // Check if the line starts with " ", "#", or "//"
+        if (!line.empty() && (line[0] == ' ' || line[0] == '#' || line.substr(0, 2) == "//")) {
+            continue;
+        }
+
+        cout << line << "\n"; // Print the line
     }
 
     while (getline(inFile, line)) {
