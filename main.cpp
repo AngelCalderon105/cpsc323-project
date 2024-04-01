@@ -29,48 +29,45 @@ map<TokenType, string> tokenTypeNames = {
     {TokenType::Unknown, "Unknown"}
 };
 
-// Separator, keyword, and operator configurations
 const string whitespace = " \t\n";
 const string delimiters = ",;(){}";
-const vector<string> keyWords = { "def", "return", "print", "int" "cout", "endl"};
-const string operators = "+-*/%=<>";
+const vector<string> keyWords = { "def", "return", "print", "int" };
+const vector<string> operators = { "+", "-", "*", "/", "%", "=", "<", ">", 
+"+=", "-=", "*=", "/=", "%=", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "<<", ">>" };
 
-// Check if a string is a keyword
 bool isKeyword(const string& word) {
     return find(keyWords.begin(), keyWords.end(), word) != keyWords.end();
 }
 
-// Check if a character is a delimiter
 bool isDelimiter(char ch) {
     return delimiters.find(ch) != string::npos;
 }
 
-// Check if a character is an operator
-bool isOperator(char ch) {
-    return operators.find(ch) != string::npos;
+// Updated to handle string input
+bool isOperator(const string& op) {
+    return find(operators.begin(), operators.end(), op) != operators.end();
 }
 
-// Identify the token type
 TokenType identifyTokenType(const string& token) {
     if (isKeyword(token)) return TokenType::Keyword;
-    if (token.length() == 1 && isOperator(token[0])) return TokenType::Operator;
+    if (isOperator(token)) return TokenType::Operator; 
     if (token.length() == 1 && isDelimiter(token[0])) return TokenType::Delimiter;
     if (isdigit(token[0])) return TokenType::Literal;
-    return TokenType::Identifier; // Everything else that is not a single char operator/delimiter or digit is an identifier
+    return TokenType::Identifier;
 }
-
 // Tokenize input string
 vector<string> tokenize(const string& input) {
     vector<string> tokens;
     string token;
-    for (char ch : input) {
+    for (size_t i = 0; i < input.length(); ++i) {
+        char ch = input[i];
         if (whitespace.find(ch) != string::npos) {
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
             }
         }
-        else if (isDelimiter(ch) || isOperator(ch)) {
+        else if (isDelimiter(ch)) {
             if (!token.empty()) {
                 tokens.push_back(token);
                 token.clear();
@@ -78,13 +75,35 @@ vector<string> tokenize(const string& input) {
             tokens.push_back(string(1, ch));
         }
         else {
-            token += ch;
+            string potentialOperator(1, ch);
+            if (i + 1 < input.length()) {
+                potentialOperator += input[i + 1];
+                // Check for operator that have 2 char
+                if (isOperator(potentialOperator)) {
+                    if (!token.empty()) {
+                        tokens.push_back(token);
+                        token.clear();
+                    }
+                    tokens.push_back(potentialOperator);
+                    ++i; 
+                    continue;
+                }
+            }
+            if (isOperator(string(1, ch))) {
+                if (!token.empty()) {
+                    tokens.push_back(token);
+                    token.clear();
+                }
+                tokens.push_back(string(1, ch));
+            }
+            else {
+                token += ch;
+            }
         }
     }
     if (!token.empty()) tokens.push_back(token);
     return tokens;
 }
-
 // Remove comments and excessive whitespace from a line
 string cleanLine(const string& line) {
     stringstream result;
