@@ -31,8 +31,8 @@ map<TokenType, string> tokenTypeNames = {
 
 const string whitespace = " \t\n";
 const string delimiters = ",;(){}";
-const vector<string> keyWords = { "def", "return", "print", "int" };
-const vector<string> operators = { "+", "-", "*", "/", "%", "=", "<", ">", 
+const vector<string> keyWords = { "def", "return", "print", "int", "cout", "endl"};
+const vector<string> operators = { "+", "-", "*", "/", "%", "=", "<", ">",
 "+=", "-=", "*=", "/=", "%=", "==", "!=", "<=", ">=", "&&", "||", "++", "--", "<<", ">>" };
 
 bool isKeyword(const string& word) {
@@ -50,7 +50,7 @@ bool isOperator(const string& op) {
 
 TokenType identifyTokenType(const string& token) {
     if (isKeyword(token)) return TokenType::Keyword;
-    if (isOperator(token)) return TokenType::Operator; 
+    if (isOperator(token)) return TokenType::Operator;
     if (token.length() == 1 && isDelimiter(token[0])) return TokenType::Delimiter;
     if (isdigit(token[0])) return TokenType::Literal;
     return TokenType::Identifier;
@@ -85,7 +85,7 @@ vector<string> tokenize(const string& input) {
                         token.clear();
                     }
                     tokens.push_back(potentialOperator);
-                    ++i; 
+                    ++i;
                     continue;
                 }
             }
