@@ -32,8 +32,8 @@ map<TokenType, string> tokenTypeNames = {
 // Separator, keyword, and operator configurations
 const string whitespace = " \t\n";
 const string delimiters = ",;(){}";
-const vector<string> keyWords = { "def", "return", "print", "int"};
-const string operators = "+-*/%=";
+const vector<string> keyWords = { "def", "return", "print", "int" };
+const string operators = "+-*/%=<>";
 
 // Check if a string is a keyword
 bool isKeyword(const string& word) {
